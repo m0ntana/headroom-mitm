@@ -5,7 +5,7 @@ log_format log_proxy '$remote_addr [$time_local] '
                     '"$http_referer" "$http_user_agent"';
 
 upstream headroom {
-    server 10.10.60.61:9001;
+    server 127.0.0.1:9001;
 }
 
 map $http_x_agent_host $h_host {
