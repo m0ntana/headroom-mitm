@@ -30,11 +30,12 @@ $ ./root.sh
 # update-ca-certificates --fresh
 ```
 
-3. Generate certificate for nginx (my hostname was `orson.kvm`):
+3. Configure nginx (my hostname was `orson.kvm`):
 ```
 $ ./nginx.sh
 # mkdir /etc/nginx/cert
 # cp server.crt server.key /etc/nginx/cert/
+# cp ../conf/headroom /etc/nginx/sites-enabled/
 ```
 
 4. Prepare PEM for squid SSL bump:
