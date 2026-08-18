@@ -14,7 +14,7 @@ I do traffic redirection, run nginx, squid, `headroom` and agents on separate VM
 * `squid` generates SSL certificates dynamically (SSL bump)
 * `nginx` at port `9000` rewrites incompatible URI (like copilot sometimes sends `/responses` instead of `/v1/responses`)
 * `headroom` does its job and forwards queries to uplink
-* `nginx` at port 9999 restores original URI, communicates with actual uplink (api.github.com) for example and sends response back to `headroom`
+* `nginx` at port 9999 restores original URI, communicates with actual uplink (api.github.com for example) and sends response back to `headroom`
 
 
 # How To
