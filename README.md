@@ -1,8 +1,24 @@
-Depends:
-    nginx squid-openssl
-    TCP PORTS: 80,443,9000,9999
+# Why
+This is example of configuration to make `headroom` absolutely transparent to your agents so no additional configuration needed and you don't have
+to specify model on agent's start.
 
-1. Generate root
+# Depends
+Packages: `nginx squid-openssl`  
+TCP PORTS: 80,443,9000,9001,9999
+
+# Topology
+I do traffic redirection, run nginx, squid, `headroom` and agents on separate VM. Here is detailed picture of traffic flow:
+<img width="983" height="730" alt="image" src="https://github.com/user-attachments/assets/1b62894a-e6b3-4323-b233-6c34558dfc92" />
+
+# Topology roles
+* `squid` generates SSL certificates dynamically (SSL bump)
+* `nginx` at port `9000` rewrites incompatible URI (like copilot sometimes sends `/responses` instead of `/v1/responses`)
+* `headroom` does its job and forwards queries to uplink
+* `nginx` at port 9999 restores original URI, communicates with actual uplink (api.github.com) for example and sends response back to `headroom`
+
+
+# How To
+1. Generate root CA
 ```
 $ cd ssl
 $ ./root.sh
@@ -34,15 +50,14 @@ $ cat root_mitm_headroom.crt root_mitm_headroom.key > root_mitm_headroom.pem
 # cp ../conf/squid.conf /etc/squid/
 ```
 
-6. Apply iptables rule (and make it permanent I guess):
-Local ip address of VM where I run headroom, opencode/copilot, nginx and squid is 10.10.60.60
+6. Apply iptables rule (don't forget to replace username and make rule permanent I guess):
 
 ```
-# iptables -t nat -A OUTPUT -o eth1 -p tcp --dport 443 -m owner ! --uid-owner 0 -j DNAT --to-destination 10.10.60.60:443
+# iptables -t nat -A OUTPUT -o eth1 -p tcp --dport 443 -m owner --uid-owner m0ntana -j DNAT --to-destination 127.0.0.1:443
 ```
 
-7. Add to /etc/environment:
+7. Add to /etc/environment (this will tell python to use common root CA instead of its own):
 ```
-export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ```
