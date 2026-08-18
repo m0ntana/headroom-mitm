@@ -1,0 +1,70 @@
+resolver 1.1.1.1;
+
+log_format log_proxy '$remote_addr [$time_local] '
+                    '$host "$request" $status $body_bytes_sent '
+                    '"$http_referer" "$http_user_agent"';
+
+upstream headroom {
+    server 10.10.60.61:9001;
+}
+
+map $http_x_agent_host $h_host {
+    default $http_x_agent_host;
+    "" $host;
+}
+
+server {
+    listen 9000 ssl;
+    server_name orson.kvm;
+    access_log /var/log/nginx/access.log log_proxy;
+
+    ssl_certificate     cert/server.crt;
+    ssl_certificate_key cert/server.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    proxy_ssl_verify off;
+    proxy_ssl_server_name on;
+
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+
+    proxy_set_header Host $h_host;
+
+    location ~ ^/(responses|messages|chat/completions)$ {
+	proxy_set_header x-agent-uri $request_uri;
+	rewrite (.*) /v1$request_uri;
+    }
+
+    location /v1 {
+	proxy_set_header x-agent-uri $request_uri;
+	proxy_set_header x-agent-host $h_host;
+	proxy_pass http://headroom;
+    }
+
+    location / {
+	proxy_pass https://$host$uri;
+    }
+}
+
+server {
+    listen 9999;
+
+    access_log /var/log/nginx/access.log log_proxy;
+
+    proxy_ssl_verify off;
+    proxy_ssl_server_name on;
+
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+
+    proxy_set_header Host $h_host;
+    
+    location / {
+	set $proxy_url https://$h_host$http_x_agent_uri;
+	proxy_pass $proxy_url;
+    }
+}
